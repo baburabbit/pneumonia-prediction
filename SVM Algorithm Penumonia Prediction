@@ -1,0 +1,71 @@
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.svm import SVC
+from sklearn.metrics import classification_report, accuracy_score
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+
+# Assuming you have loaded your data into X and y
+dataset_dir = '/content/drive/MyDrive/image'
+
+# Load your data into X and y, modify this part based on your dataset
+# Example assuming you have image paths and labels
+# X, y = load_data(dataset_dir)
+
+# Data preprocessing
+datagen = ImageDataGenerator(
+    rescale=1.0 / 255.0,
+    rotation_range=20,
+    width_shift_range=0.2,
+    height_shift_range=0.2,
+    shear_range=0.2,
+    zoom_range=0.2,
+    horizontal_flip=True,
+    fill_mode='nearest'
+)
+train_generator = datagen.flow_from_directory(
+    dataset_dir,
+    target_size=(150, 150),
+    batch_size=54,
+    class_mode='categorical',  # Assuming you have multiple classes
+    shuffle=True
+)
+
+# Extract features and labels from the generator
+X = []
+y = []
+for i in range(len(train_generator)):
+    batch_X, batch_y = train_generator[i]
+    X.extend(batch_X)
+    y.extend(batch_y)
+
+# Reshape the feature vectors if necessary
+X = np.array(X).reshape(len(X), -1)
+
+# Encode labels
+label_encoder = LabelEncoder()
+y_encoded = label_encoder.fit_transform(np.argmax(y, axis=1))
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y_encoded, test_size=0.2, random_state=42)
+
+# Standardize the data
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# Create the SVM model
+svm_model = SVC(kernel='linear', C=1.0)
+
+# Train the model
+svm_model.fit(X_train, y_train)
+
+# Make predictions on the test set
+y_pred = svm_model.predict(X_test)
+
+# Evaluate the model
+accuracy = accuracy_score(y_test, y_pred)
+report = classification_report(y_test, y_pred)
+
+print(f"Accuracy: {accuracy}")
+print(report)
