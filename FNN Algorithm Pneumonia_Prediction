@@ -1,0 +1,56 @@
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Flatten, Dense
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.losses import SparseCategoricalCrossentropy
+from tensorflow.keras.metrics import SparseCategoricalAccuracy
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+
+# Define the path to your dataset directory
+dataset_directory = '/content/drive/MyDrive/image'
+
+# Create an ImageDataGenerator instance for data augmentation and normalization
+datagen = ImageDataGenerator(
+    rescale=1./255,  # Normalize pixel values to be between 0 and 1
+    validation_split=0.2  # Split the dataset into training (80%) and validation (20%) sets
+)
+
+# Load and preprocess training data
+train_generator = datagen.flow_from_directory(
+    dataset_directory,
+    target_size=(28, 28),  # Resize images to 28x28 pixels
+    batch_size=42,
+    class_mode='sparse',  # For integer labels
+    subset='training'  # Specify training set
+)
+
+# Load and preprocess validation data
+validation_generator = datagen.flow_from_directory(
+    dataset_directory,
+    target_size=(28, 28),
+    batch_size=32,
+    class_mode='sparse',
+    subset='validation'  # Specify validation set
+)
+
+# Build the FNN model
+model = Sequential([
+    Flatten(input_shape=(28, 28, 3)),  # Input layer: Flatten 28x28x3 images into 1D array (for color images)
+    Dense(128, activation='relu'),      # Hidden layer with 128 units and ReLU activation function
+    Dense(10, activation='softmax')     # Output layer with 10 units (for 10 classes) and softmax activation function
+])
+
+# Compile the model
+model.compile(optimizer=Adam(),
+              loss=SparseCategoricalCrossentropy(),
+              metrics=[SparseCategoricalAccuracy()])
+
+# Train the model using the generators
+model.fit(train_generator, epochs=10, validation_data=validation_generator)
+
+# Evaluate the model (optional)
+# test_loss, test_accuracy = model.evaluate(test_generator)
+# print(f'Test accuracy: {test_accuracy}')
+test_accuracy, test_loss = model.evaluate(validation_generator)
+print("Test accuracy:", test_accuracy)
+print("Test loss:", test_loss)
